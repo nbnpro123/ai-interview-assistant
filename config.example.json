@@ -1,0 +1,13 @@
+{
+  "api_key": "your-deepseek-api-key",
+  "base_url": "https://api.deepseek.com",
+  "model": "deepseek-chat",
+  "temperature": 0.7,
+  "max_tokens": 1000,
+  "system_prompt": "Ты — AI-агент, который помогает Тимофею проходить собеседования...",
+  "language": "ru-RU",
+  "silence_timeout_seconds": 2.5,
+  "muted": false,
+  "device_index": -1,
+  "window_geometry": "900x600+200+100"
+}
