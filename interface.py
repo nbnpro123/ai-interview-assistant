@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 from audio_engine import AudioEngine
 from ai_engine import AIEngine
+from screen_capture import ScreenRegionSelector, _OCR_AVAILABLE
 
 try:
     import pystray
@@ -305,6 +306,12 @@ class InterviewAssistantUI:
                                      padx=10, pady=6, cursor="hand2")
         self.manual_btn.pack(side="left", padx=8)
 
+        tk.Button(controls, text="📷 Экран",
+                  command=self._capture_screen,
+                  bg=COLORS["surface2"], fg=COLORS["text"],
+                  font=FONTS["body"], relief="flat",
+                  padx=10, pady=6, cursor="hand2").pack(side="left", padx=8)
+
         tk.Button(controls, text="🗑 Очистить", command=self._clear,
                   bg=COLORS["surface2"], fg=COLORS["text"],
                   font=FONTS["body"], relief="flat",
@@ -352,6 +359,37 @@ class InterviewAssistantUI:
         else:
             engine.start_manual_recording()
             self.manual_btn.config(text="⏹ Стоп", bg=COLORS["error"])
+
+    def _capture_screen(self):
+        if not _OCR_AVAILABLE:
+            messagebox.showwarning("OCR недоступен", "Установите pytesseract:\npip install pytesseract\n\nИ Tesseract-OCR: https://github.com/UB-Mannheim/tesseract")
+            return
+
+        def on_text(text, error):
+            if error:
+                self.root.after(0, lambda: self._set_status(f"⚠ {error}"))
+                return
+            self.root.after(0, lambda: self._on_ocr_text(text))
+
+        self._set_status("Выделите область на экране...")
+        self.root.iconify()
+        self.root.after(500, lambda: self._show_selector(on_text))
+
+    def _show_selector(self, callback):
+        selector = ScreenRegionSelector(self.root, callback)
+        selector.select()
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+
+    def _on_ocr_text(self, text):
+        self._last_source = "typed"
+        self.question_text.config(state="normal")
+        self.question_text.delete("1.0", "end")
+        self.question_text.insert("1.0", text)
+        self.question_text.config(state="disabled")
+        self._set_status(f"Распознано с экрана: {text[:40]}...")
+        self.ai_engine.send_message(text)
 
     def _send_manual(self):
         text = self.manual_entry.get().strip()
