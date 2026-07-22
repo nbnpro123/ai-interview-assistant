@@ -6,4 +6,3 @@ comtypes>=1.4.0
 pycaw>=20251023
 pystray>=0.19.0
 pytesseract>=0.3.10
-keyboard>=0.13.5

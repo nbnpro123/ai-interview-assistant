@@ -15,11 +15,7 @@ try:
 except ImportError:
     _HAS_TRAY = False
 
-try:
-    import keyboard
-    _HAS_KEYBOARD = True
-except ImportError:
-    _HAS_KEYBOARD = False
+from hotkey import start_hotkey as _start_hotkey, stop_hotkey as _stop_hotkey
 
 
 COLORS = {
@@ -556,8 +552,7 @@ class InterviewAssistantUI:
             pass
 
     def _on_close(self):
-        if _HAS_KEYBOARD:
-            keyboard.unhook_all()
+        _stop_hotkey()
         if self.audio_engine.is_running:
             self.audio_engine.stop()
         self.config["window_geometry"] = self.root.geometry()
@@ -565,9 +560,7 @@ class InterviewAssistantUI:
         self.root.destroy()
 
     def _register_hotkeys(self):
-        if not _HAS_KEYBOARD:
-            return
-        keyboard.add_hotkey("ctrl+alt+s", self._capture_screen)
+        _start_hotkey(self._capture_screen)
 
     def run(self):
         self.root.mainloop()
