@@ -15,6 +15,12 @@ try:
 except ImportError:
     _HAS_TRAY = False
 
+try:
+    import keyboard
+    _HAS_KEYBOARD = True
+except ImportError:
+    _HAS_KEYBOARD = False
+
 
 COLORS = {
     "bg": "#1a1a2e",
@@ -192,6 +198,7 @@ class InterviewAssistantUI:
 
         self._build_ui()
         self._poll_events()
+        self._register_hotkeys()
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -549,11 +556,18 @@ class InterviewAssistantUI:
             pass
 
     def _on_close(self):
+        if _HAS_KEYBOARD:
+            keyboard.unhook_all()
         if self.audio_engine.is_running:
             self.audio_engine.stop()
         self.config["window_geometry"] = self.root.geometry()
         self._save_config(self.config)
         self.root.destroy()
+
+    def _register_hotkeys(self):
+        if not _HAS_KEYBOARD:
+            return
+        keyboard.add_hotkey("ctrl+shift+s", self._capture_screen)
 
     def run(self):
         self.root.mainloop()
