@@ -313,7 +313,7 @@ class InterviewAssistantUI:
                                      padx=10, pady=6, cursor="hand2")
         self.manual_btn.pack(side="left", padx=8)
 
-        tk.Button(controls, text="📷 Экран",
+        tk.Button(controls, text="📷 Экран (Ctrl+Alt+S)",
                   command=self._capture_screen,
                   bg=COLORS["surface2"], fg=COLORS["text"],
                   font=FONTS["body"], relief="flat",
@@ -567,7 +567,7 @@ class InterviewAssistantUI:
     def _register_hotkeys(self):
         if not _HAS_KEYBOARD:
             return
-        keyboard.add_hotkey("ctrl+shift+s", self._capture_screen)
+        keyboard.add_hotkey("ctrl+alt+s", self._capture_screen)
 
     def run(self):
         self.root.mainloop()
