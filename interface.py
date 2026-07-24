@@ -292,56 +292,65 @@ class InterviewAssistantUI:
                   font=FONTS["body"], relief="flat",
                   padx=12, pady=4, cursor="hand2").pack(side="right")
 
-        # Control bar
-        controls = tk.Frame(content, bg=COLORS["bg"], height=50)
+        # Control bar — row 1: main actions
+        controls = tk.Frame(content, bg=COLORS["bg"])
         controls.pack(fill="x", pady=(6, 0))
-        controls.pack_propagate(False)
 
-        self.toggle_btn = tk.Button(controls, text="🎤 Начать прослушивание",
+        row1 = tk.Frame(controls, bg=COLORS["bg"])
+        row1.pack(fill="x")
+
+        self.toggle_btn = tk.Button(row1, text="🎤 Слушать",
                                      command=self._toggle_listening,
                                      bg=COLORS["accent"], fg="white",
                                      font=FONTS["body"], relief="flat",
-                                     padx=20, pady=6, cursor="hand2",
+                                     padx=12, pady=4, cursor="hand2",
                                      activebackground=COLORS["accent2"])
-        self.toggle_btn.pack(side="left", padx=(0, 8))
+        self.toggle_btn.pack(side="left", padx=(0, 4))
 
-        self.manual_btn = tk.Button(controls, text="⏺ Захват",
+        self.manual_btn = tk.Button(row1, text="⏺ Запись",
                                      command=self._toggle_manual_recording,
                                      bg=COLORS["surface2"], fg=COLORS["text"],
                                      font=FONTS["body"], relief="flat",
-                                     padx=10, pady=6, cursor="hand2")
-        self.manual_btn.pack(side="left", padx=8)
+                                     padx=8, pady=4, cursor="hand2")
+        self.manual_btn.pack(side="left", padx=4)
 
-        tk.Button(controls, text="📷 Экран (Ctrl+Alt+S)",
+        tk.Button(row1, text="📷 Экран",
                   command=self._capture_screen,
                   bg=COLORS["surface2"], fg=COLORS["text"],
-                  font=FONTS["body"], relief="flat",
-                  padx=10, pady=6, cursor="hand2").pack(side="left", padx=8)
+                  font=FONTS["small"], relief="flat",
+                  padx=8, pady=4, cursor="hand2").pack(side="left", padx=4)
 
-        tk.Button(controls, text="🗑 Очистить", command=self._clear,
+        tk.Button(row1, text="🗑", command=self._clear,
                   bg=COLORS["surface2"], fg=COLORS["text"],
                   font=FONTS["body"], relief="flat",
-                  padx=15, pady=6, cursor="hand2").pack(side="left", padx=8)
+                  padx=6, pady=4, cursor="hand2").pack(side="left", padx=4)
 
-        self.mute_btn = tk.Button(controls, text="🔊 Звук",
+        self.mute_btn = tk.Button(row1, text="🔊",
                                    command=self._toggle_mute,
                                    bg=COLORS["surface2"], fg=COLORS["text"],
                                    font=FONTS["body"], relief="flat",
-                                   padx=10, pady=6, cursor="hand2")
-        self.mute_btn.pack(side="left", padx=8)
+                                   padx=6, pady=4, cursor="hand2")
+        self.mute_btn.pack(side="left", padx=4)
         self._update_mute_btn()
 
         if _HAS_TRAY:
-            tk.Button(controls, text="🕶 Скрыть (Ctrl+H)",
+            tk.Button(row1, text="🕶",
                       command=self._toggle_hidden,
                       bg=COLORS["surface2"], fg=COLORS["text"],
                       font=FONTS["body"], relief="flat",
-                      padx=10, pady=6, cursor="hand2").pack(side="left", padx=8)
+                      padx=6, pady=4, cursor="hand2").pack(side="left", padx=4)
 
-        self.count_label = tk.Label(controls, text="Вопросов: 0",
+        self.count_label = tk.Label(row1, text="Вопросов: 0",
                                      fg=COLORS["text_secondary"], bg=COLORS["bg"],
                                      font=FONTS["small"])
-        self.count_label.pack(side="right", padx=5)
+        self.count_label.pack(side="right", padx=4)
+
+        # Row 2: hotkey hints
+        row2 = tk.Frame(controls, bg=COLORS["bg"])
+        row2.pack(fill="x", pady=(2, 0))
+        tk.Label(row2, text="Ctrl+Alt+S — экран  |  Ctrl+H — скрыть",
+                 fg=COLORS["text_secondary"], bg=COLORS["bg"],
+                 font=("Segoe UI", 8)).pack(side="left")
 
     def _setup_answer_tags(self):
         t = self.answer_text
@@ -427,12 +436,12 @@ class InterviewAssistantUI:
     def _toggle_listening(self):
         if self.audio_engine.is_running:
             self.audio_engine.stop()
-            self.toggle_btn.config(text="🎤 Начать прослушивание", bg=COLORS["accent"])
+            self.toggle_btn.config(text="🎤 Слушать", bg=COLORS["accent"])
             self.status_dot.itemconfig(self._dot, fill=COLORS["text_secondary"])
-            self.manual_btn.config(text="⏺ Захват", bg=COLORS["surface2"])
+            self.manual_btn.config(text="⏺ Запись", bg=COLORS["surface2"])
         else:
             self.audio_engine.start(self.config.get("device_index"))
-            self.toggle_btn.config(text="⏹ Остановить", bg=COLORS["error"])
+            self.toggle_btn.config(text="⏹ Стоп", bg=COLORS["error"])
             self.status_dot.itemconfig(self._dot, fill=COLORS["success"])
 
     def _toggle_manual_recording(self):
@@ -442,7 +451,7 @@ class InterviewAssistantUI:
         engine = self.audio_engine
         if hasattr(engine, '_manual_recording') and engine._manual_recording:
             engine.stop_manual_recording()
-            self.manual_btn.config(text="⏺ Захват", bg=COLORS["surface2"])
+            self.manual_btn.config(text="⏺ Запись", bg=COLORS["surface2"])
         else:
             engine.start_manual_recording()
             self.manual_btn.config(text="⏹ Стоп", bg=COLORS["error"])
@@ -537,9 +546,9 @@ class InterviewAssistantUI:
 
     def _update_mute_btn(self):
         if self._muted:
-            self.mute_btn.config(text="🔇 Без звука", bg=COLORS["error"])
+            self.mute_btn.config(text="🔇", bg=COLORS["error"])
         else:
-            self.mute_btn.config(text="🔊 Звук", bg=COLORS["surface2"])
+            self.mute_btn.config(text="🔊", bg=COLORS["surface2"])
 
     def _toggle_hidden(self):
         if self.root.state() in ("withdrawn", "iconic"):
