@@ -35,8 +35,12 @@ FONTS = {
     "header": ("Segoe UI", 16, "bold"),
     "subheader": ("Segoe UI", 11, "bold"),
     "body": ("Segoe UI", 10),
+    "body_bold": ("Segoe UI", 10, "bold"),
     "small": ("Segoe UI", 9),
     "mono": ("Consolas", 10),
+    "mono_bold": ("Consolas", 10, "bold"),
+    "heading": ("Segoe UI", 13, "bold"),
+    "answer": ("Segoe UI", 11),
 }
 
 
@@ -269,9 +273,7 @@ class InterviewAssistantUI:
         self.answer_text.pack(fill="both", expand=True, padx=8, pady=8)
         self.answer_text.insert("1.0", "Нажмите «Начать» и задайте вопрос...")
         self.answer_text.config(state="disabled")
-        self.answer_text.tag_config("vad_tag", foreground=COLORS["accent"])
-        self.answer_text.tag_config("manual_tag", foreground=COLORS["success"])
-        self.answer_text.tag_config("typed_tag", foreground=COLORS["warning"])
+        self._setup_answer_tags()
 
         # Manual text input
         manual_frame = tk.Frame(content, bg=COLORS["bg"])
@@ -340,6 +342,87 @@ class InterviewAssistantUI:
                                      fg=COLORS["text_secondary"], bg=COLORS["bg"],
                                      font=FONTS["small"])
         self.count_label.pack(side="right", padx=5)
+
+    def _setup_answer_tags(self):
+        t = self.answer_text
+        t.tag_config("vad_tag", foreground="#5e9cff", font=FONTS["small"])
+        t.tag_config("manual_tag", foreground=COLORS["success"], font=FONTS["small"])
+        t.tag_config("typed_tag", foreground=COLORS["warning"], font=FONTS["small"])
+        t.tag_config("q_label", foreground="#5e9cff", font=FONTS["small"])
+        t.tag_config("a_label", foreground=COLORS["success"], font=FONTS["small"])
+        t.tag_config("heading", foreground="#eaeaea", font=FONTS["heading"])
+        t.tag_config("bold", foreground="#ffffff", font=FONTS["body_bold"])
+        t.tag_config("code_inline", foreground="#f8c291", background="#2a2a4a",
+                      font=FONTS["mono"], lmargin1=10, lmargin2=10)
+        t.tag_config("code_block", foreground="#dfe6e9", background="#1e272e",
+                      font=FONTS["mono"], lmargin1=15, lmargin2=15,
+                      spacing1=4, spacing3=4)
+        t.tag_config("bullet", foreground="#eaeaea", font=FONTS["answer"],
+                      lmargin1=25, lmargin2=45)
+        t.tag_config("body", foreground="#e0e0e0", font=FONTS["answer"],
+                      lmargin1=5, lmargin2=5, spacing1=3, spacing3=2)
+        t.tag_config("separator", foreground=COLORS["surface2"])
+
+    def _insert_markdown(self, text):
+        import re
+        t = self.answer_text
+        lines = text.split("\n")
+        in_code_block = False
+
+        for line in lines:
+            stripped = line.strip()
+
+            if stripped.startswith("```"):
+                in_code_block = not in_code_block
+                if in_code_block:
+                    t.insert("end", "\n")
+                continue
+
+            if in_code_block:
+                t.insert("end", line + "\n", "code_block")
+                continue
+
+            if not stripped:
+                t.insert("end", "\n")
+                continue
+
+            if stripped.startswith("#"):
+                level = len(stripped) - len(stripped.lstrip("#"))
+                content = stripped.lstrip("# ").strip()
+                t.insert("end", content + "\n", "heading")
+                continue
+
+            if re.match(r"^[-*]\s", stripped):
+                content = re.sub(r"^[-*]\s+", "", stripped)
+                t.insert("end", "  \u2022  ", "bullet")
+                self._insert_inline(t, content, "bullet")
+                t.insert("end", "\n")
+                continue
+
+            if re.match(r"^\d+\.\s", stripped):
+                content = re.sub(r"^\d+\.\s+", "", stripped)
+                num = re.match(r"^(\d+\.)", stripped).group(1)
+                t.insert("end", f"  {num}  ", "bullet")
+                self._insert_inline(t, content, "bullet")
+                t.insert("end", "\n")
+                continue
+
+            self._insert_inline(t, stripped, "body")
+            t.insert("end", "\n")
+
+    def _insert_inline(self, text_widget, text, base_tag):
+        import re
+        pos = 0
+        for m in re.finditer(r"\*\*(.+?)\*\*|`([^`]+)`", text):
+            if m.start() > pos:
+                text_widget.insert("end", text[pos:m.start()], base_tag)
+            if m.group(1):
+                text_widget.insert("end", m.group(1), "bold")
+            elif m.group(2):
+                text_widget.insert("end", m.group(2), "code_inline")
+            pos = m.end()
+        if pos < len(text):
+            text_widget.insert("end", text[pos:], base_tag)
 
     def _toggle_listening(self):
         if self.audio_engine.is_running:
@@ -536,13 +619,16 @@ class InterviewAssistantUI:
             if self._question_count == 1:
                 self.answer_text.delete("1.0", "end")
             else:
-                self.answer_text.insert("end", "\n\n" + "─" * 40 + "\n\n")
+                self.answer_text.insert("end", "\n" + "\u2500" * 50 + "\n\n", "separator")
             if src_tag:
-                self.answer_text.insert("end", f"[{src_label}]\n", src_tag)
-            else:
-                self.answer_text.insert("end", f"[{src_label}]\n")
-            self.answer_text.insert("end", f"❓ Вопрос:\n{question}\n\n")
-            self.answer_text.insert("end", f"💬 Ответ:\n{text}")
+                self.answer_text.insert("end", f"  {src_label}\n", src_tag)
+            self.answer_text.insert("end", f"  \u2753  ", "q_label")
+            self._insert_inline(self.answer_text, question, "q_label")
+            self.answer_text.insert("end", "\n\n")
+            self.answer_text.insert("end", f"  \U0001F4AC  ", "a_label")
+            self._insert_inline(self.answer_text, "Ответ:", "a_label")
+            self.answer_text.insert("end", "\n")
+            self._insert_markdown(text)
             self.answer_text.see("end")
             self.answer_text.config(state="disabled")
             self._set_status(f"Ответ получен на: {question[:40]}...")
