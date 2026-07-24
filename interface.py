@@ -177,6 +177,7 @@ class InterviewAssistantUI:
         self._muted = config.get("muted", False)
         self._tray_icon = None
         self._last_source = "vad"
+        self._last_question = ""
 
         self.root = tk.Tk()
         self.root.title("AI Ассистент собеседования")
@@ -391,8 +392,14 @@ class InterviewAssistantUI:
         self.question_text.delete("1.0", "end")
         self.question_text.insert("1.0", text)
         self.question_text.config(state="disabled")
+
+        if self._last_question:
+            prompt = f"Контекст (предыдущий вопрос HR):\n{self._last_question}\n\nТекст с экрана:\n{text}"
+        else:
+            prompt = text
+
         self._set_status(f"Распознано с экрана: {text[:40]}...")
-        self.ai_engine.send_message(text)
+        self.ai_engine.send_message(prompt)
 
     def _send_manual(self):
         text = self.manual_entry.get().strip()
@@ -404,8 +411,14 @@ class InterviewAssistantUI:
         self.question_text.delete("1.0", "end")
         self.question_text.insert("1.0", text)
         self.question_text.config(state="disabled")
+
+        if self._last_question:
+            prompt = f"Контекст (предыдущий вопрос HR):\n{self._last_question}\n\nНовый вопрос / уточнение:\n{text}"
+        else:
+            prompt = text
+
         self._set_status(f"Отправлено: {text[:40]}...")
-        self.ai_engine.send_message(text)
+        self.ai_engine.send_message(prompt)
 
     def _open_settings(self):
         devices = self.audio_engine.get_devices()
@@ -494,6 +507,7 @@ class InterviewAssistantUI:
         if etype == "transcription":
             text = event["text"]
             self._last_source = event.get("source", "vad")
+            self._last_question = text
             self.question_text.config(state="normal")
             self.question_text.delete("1.0", "end")
             self.question_text.insert("1.0", text)
