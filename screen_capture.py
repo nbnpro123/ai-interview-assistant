@@ -39,7 +39,7 @@ class ScreenRegionSelector:
         self.canvas.bind("<ButtonPress-1>", self._on_press)
         self.canvas.bind("<B1-Motion>", self._on_drag)
         self.canvas.bind("<ButtonRelease-1>", self._on_release)
-        self.root.bind("<Escape>", lambda e: self.root.destroy())
+        self.root.bind("<Escape>", lambda e: self._on_cancel())
 
         self.root.focus_force()
 
@@ -63,9 +63,14 @@ class ScreenRegionSelector:
         self.root.destroy()
 
         if x1 - x0 < 20 or y1 - y0 < 20:
+            self.callback(None, None)
             return
 
         threading.Thread(target=self._ocr, args=(x0, y0, x1, y1), daemon=True).start()
+
+    def _on_cancel(self):
+        self.root.destroy()
+        self.callback(None, None)
 
     def _ocr(self, x0, y0, x1, y1):
         try:

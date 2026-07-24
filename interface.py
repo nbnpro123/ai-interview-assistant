@@ -462,21 +462,27 @@ class InterviewAssistantUI:
             return
 
         def on_text(text, error):
+            self.root.after(100, lambda: self._restore_after_capture())
             if error:
-                self.root.after(0, lambda: self._set_status(f"⚠ {error}"))
+                self.root.after(200, lambda: self._set_status(f"⚠ {error}"))
                 return
-            self.root.after(0, lambda: self._on_ocr_text(text))
+            self.root.after(200, lambda: self._on_ocr_text(text))
 
         self._set_status("Выделите область на экране...")
-        self.root.iconify()
-        self.root.after(500, lambda: self._show_selector(on_text))
+        self.root.withdraw()
+        self.root.after(300, lambda: self._show_selector(on_text))
 
     def _show_selector(self, callback):
         selector = ScreenRegionSelector(self.root, callback)
         selector.select()
-        self.root.deiconify()
-        self.root.lift()
-        self.root.focus_force()
+
+    def _restore_after_capture(self):
+        try:
+            self.root.deiconify()
+            self.root.lift()
+            self.root.focus_force()
+        except Exception:
+            pass
 
     def _build_context_prompt(self, new_text):
         if self._recent_questions:
