@@ -177,7 +177,7 @@ class InterviewAssistantUI:
         self._muted = config.get("muted", False)
         self._tray_icon = None
         self._last_source = "vad"
-        self._last_question = ""
+        self._recent_questions = []
 
         self.root = tk.Tk()
         self.root.title("AI Ассистент собеседования")
@@ -386,6 +386,12 @@ class InterviewAssistantUI:
         self.root.lift()
         self.root.focus_force()
 
+    def _build_context_prompt(self, new_text):
+        if self._recent_questions:
+            recent = "\n".join(f"  - {q}" for q in self._recent_questions[-3:])
+            return f"[Последние вопросы интервьюера]\n{recent}\n\n[Текущий запрос]\n{new_text}"
+        return new_text
+
     def _on_ocr_text(self, text):
         self._last_source = "typed"
         self.question_text.config(state="normal")
@@ -393,11 +399,7 @@ class InterviewAssistantUI:
         self.question_text.insert("1.0", text)
         self.question_text.config(state="disabled")
 
-        if self._last_question:
-            prompt = f"Контекст (предыдущий вопрос HR):\n{self._last_question}\n\nТекст с экрана:\n{text}"
-        else:
-            prompt = text
-
+        prompt = self._build_context_prompt(text)
         self._set_status(f"Распознано с экрана: {text[:40]}...")
         self.ai_engine.send_message(prompt)
 
@@ -412,11 +414,7 @@ class InterviewAssistantUI:
         self.question_text.insert("1.0", text)
         self.question_text.config(state="disabled")
 
-        if self._last_question:
-            prompt = f"Контекст (предыдущий вопрос HR):\n{self._last_question}\n\nНовый вопрос / уточнение:\n{text}"
-        else:
-            prompt = text
-
+        prompt = self._build_context_prompt(text)
         self._set_status(f"Отправлено: {text[:40]}...")
         self.ai_engine.send_message(prompt)
 
@@ -507,7 +505,9 @@ class InterviewAssistantUI:
         if etype == "transcription":
             text = event["text"]
             self._last_source = event.get("source", "vad")
-            self._last_question = text
+            self._recent_questions.append(text)
+            if len(self._recent_questions) > 4:
+                self._recent_questions = self._recent_questions[-4:]
             self.question_text.config(state="normal")
             self.question_text.delete("1.0", "end")
             self.question_text.insert("1.0", text)
